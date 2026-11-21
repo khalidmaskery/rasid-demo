@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rasid ASMaaS Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{base:'#0B1120',panel:'#111827',edge:'#1F2A3C'}}}}</script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* VOICE: calm, clinical SOC console — facts first, no theatre
+   IDEA: a radar watchtower scanning the perimeter of an Omani enterprise
+   PICTURE: risk gauge + attack-path graph as the hero visuals
+   COLOUR and TYPE: #0B1120 slate, #111827 cards, sky→teal→emerald accents; Inter + Cairo
+   LAYOUT: mobile-first single column, sticky header, bottom navigation, drawer + modal */
+:root{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0B1120;color:#E2E8F0;font-family:Inter,Cairo,system-ui,sans-serif;overflow-x:clip}
+html[lang=ar] body{font-family:Cairo,Inter,system-ui,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+bdi{unicode-bidi:isolate}
+.card{background:#111827;border:1px solid #1F2A3C;border-radius:16px}
+.grad-text{background:linear-gradient(90deg,#0EA5E9,#14B8A6,#10B981);-webkit-background-clip:text;background-clip:text;color:transparent}
+.grad-btn{background:linear-gradient(90deg,#0EA5E9,#14B8A6,#10B981);color:#04121c}
+.chip{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid #1F2A3C;background:#0F172A;color:#94A3B8;font-size:14px;font-weight:600;white-space:nowrap;flex:none}
+.chip[aria-pressed=true]{background:#0EA5E91f;border-color:#0EA5E9;color:#E0F2FE}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid;white-space:nowrap}
+.seg button{flex:1;min-height:44px;font-size:13px;font-weight:600;color:#94A3B8;border-radius:10px}
+.seg button[aria-pressed=true]{color:#fff}
+.navbtn{flex:1;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:#64748B}
+.navbtn[aria-current=page]{color:#38BDF8}
+.navbtn[aria-current=page] svg{filter:drop-shadow(0 0 6px #0EA5E9aa)}
+button:focus-visible,input:focus-visible,summary:focus-visible,.node:focus-visible{outline:2px solid #0EA5E9;outline-offset:2px}
+.view{display:none}.view.active{display:block}
+.sweep{transform-origin:32px 32px;animation:spin 4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.flow{stroke-dasharray:7 6;animation:flow .9s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-13}}
+.pulse{animation:pulse 1s ease 2}
+@keyframes pulse{50%{box-shadow:0 0 0 4px #10B98155;border-color:#10B981}}
+.drawer{transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.drawer.open{transform:none}
+.dot{width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 0 0 #10B98188;animation:ping 2s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 7px #10B98100}100%{box-shadow:0 0 0 0 #10B98100}}
+.stage{padding:6px 10px;border-radius:999px;border:1px solid #1F2A3C;color:#64748B;font-size:12px;font-weight:700}
+.stage.active{border-color:#0EA5E9;color:#7DD3FC;background:#0EA5E914}
+.stage.done{border-color:#10B98166;color:#34D399}
+details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}
+details[open] .chev{transform:rotate(180deg)}
+.scrollx{overflow-x:auto;scrollbar-width:none}.scrollx::-webkit-scrollbar{display:none}
+#term .ln{white-space:pre-wrap;word-break:break-word}
+@media (prefers-reduced-motion:reduce){.sweep,.flow,.pulse,.dot{animation:none}.drawer{transition:none}}
+/* report table on phones */
+@media(max-width:600px){.stack thead{display:none}.stack tr{display:grid;padding-block:8px;border-bottom:1px solid #E2E8F0}.stack td{display:flow-root;border:0!important;padding:3px 0!important;padding-inline-start:6.5em!important}.stack td::before{content:attr(data-l);float:inline-start;width:6em;margin-inline-start:-6.5em;color:#64748B;font-weight:600}}
+@media print{
+  @page{margin:12mm}
+  html,body{background:#fff!important}
+  header,main,nav,#drawer,#scrim,#toast,.no-print{display:none!important}
+  #report{position:static!important;display:block!important;background:none!important;overflow:visible!important;padding:0!important}
+  #reportSheet{max-width:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<header class="sticky top-0 z-30 bg-base/90 backdrop-blur border-b border-edge" style="padding-top:env(safe-area-inset-top)">
+  <div class="max-w-5xl mx-auto px-4 pt-3 pb-2 flex items-center gap-3">
+    <div id="logoHead" class="w-11 h-11 shrink-0"></div>
+    <div class="leading-tight">
+      <div class="text-[17px] font-extrabold tracking-wide text-white">RASID <span class="text-slate-600">|</span> <span style="font-family:Cairo">راصد</span></div>
+      <div class="text-[12px] text-slate-400" data-i18n="tagline">External Attack Surface Management</div>
+    </div>
+    <div class="ms-auto flex items-center gap-2">
+      <button id="scanHead" class="w-11 h-11 rounded-xl border border-edge bg-panel grid place-items-center text-teal-300" aria-label="Run scan"><i data-lucide="radar" class="w-5 h-5"></i></button>
+      <div class="flex rounded-xl border border-edge bg-panel p-1" role="group" aria-label="Language">
+        <button data-lang="en" class="langbtn h-9 px-3 rounded-lg text-[13px] font-bold">EN</button>
+        <button data-lang="ar" class="langbtn h-9 px-3 rounded-lg text-[13px] font-bold" style="font-family:Cairo">عربي</button>
+      </div>
+    </div>
+  </div>
+  <div class="max-w-5xl mx-auto px-4 pb-3">
+    <span class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[12px] font-semibold text-emerald-300">
+      <span class="dot"></span><span data-i18n="demoEnv">Demo Environment</span> • <bdi class="mono">oman-logistics-demo.om</bdi>
+    </span>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 pt-5" style="padding-bottom:calc(96px + env(safe-area-inset-bottom))">
+
+  <!-- 1. OVERVIEW -->
+  <section id="v-overview" class="view active">
+    <h1 id="headline" class="text-[26px] sm:text-[34px] font-extrabold leading-[1.1] text-white" style="text-wrap:balance"></h1>
+    <p id="headSub" class="mt-2 text-[15px] text-slate-400"></p>
+    <p class="mt-1 text-[12px] text-slate-500" data-i18n="lastScan"></p>
+
+    <div class="mt-5 grid gap-3 md:grid-cols-5">
+      <div class="card p-4 md:col-span-2 flex flex-col items-center">
+        <div class="self-start text-[13px] font-semibold text-slate-400" data-i18n="riskTitle"></div>
+        <svg viewBox="0 0 200 124" class="w-full max-w-[280px] mt-2" aria-hidden="true">
+          <defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#10B981"/><stop offset=".55" stop-color="#F59E0B"/><stop offset="1" stop-color="#F43F5E"/></linearGradient></defs>
+          <path d="M20 104 A80 80 0 0 1 180 104" fill="none" stroke="#1F2A3C" stroke-width="16" stroke-linecap="round"/>
+          <path id="gVal" d="M20 104 A80 80 0 0 1 180 104" fill="none" stroke="url(#gg)" stroke-width="16" stroke-linecap="round" stroke-dasharray="0 252" style="transition:stroke-dasharray .8s"/>
+          <text id="gNum" x="100" y="92" text-anchor="middle" font-size="44" font-weight="800" fill="#fff">74</text>
+          <text x="100" y="112" text-anchor="middle" font-size="12" fill="#64748B">/ 100</text>
+        </svg>
+        <div id="gLvl" class="text-[15px] font-bold -mt-1"></div>
+      </div>
+      <div class="md:col-span-3 grid grid-cols-2 gap-3">
+        <div class="card p-4 kpi"><div class="flex items-center gap-2 text-[13px] text-slate-400"><i data-lucide="globe" class="w-4 h-4 text-sky-400"></i><span data-i18n="kAssets"></span></div><div id="kA" class="mt-2 text-[32px] font-extrabold text-white">28</div></div>
+        <div class="card p-4 kpi"><div class="flex items-center gap-2 text-[13px] text-slate-400"><i data-lucide="plug" class="w-4 h-4 text-teal-400"></i><span data-i18n="kServices"></span></div><div id="kS" class="mt-2 text-[32px] font-extrabold text-white">14</div></div>
+        <div class="card p-4 kpi"><div class="flex items-center gap-2 text-[13px] text-slate-400"><i data-lucide="shield-alert" class="w-4 h-4 text-rose-400"></i><span data-i18n="kCH"></span></div><div class="mt-2 text-[32px] font-extrabold"><span id="kC" class="text-rose-400">2</span><span class="text-slate-600 mx-1">·</span><span id="kH" class="text-orange-400">4</span></div></div>
+        <div class="card p-4 kpi"><div class="flex items-center gap-2 text-[13px] text-slate-400"><i data-lucide="bell" class="w-4 h-4 text-amber-400"></i><span data-i18n="kAlerts"></span></div><div id="kL" class="mt-2 text-[32px] font-extrabold text-white">3</div></div>
+      </div>
+    </div>
+
+    <button id="scanBtn" class="grad-btn mt-4 w-full min-h-[56px] rounded-2xl font-extrabold text-[16px] flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20">
+      <i data-lucide="radar" class="w-5 h-5"></i><span id="scanBtnTxt" data-i18n="runScan"></span>
+    </button>
+
+    <div class="mt-4 grid gap-3 md:grid-cols-2">
+      <div class="card p-4">
+        <div class="flex items-baseline justify-between gap-2"><h2 class="font-bold text-white" data-i18n="sevTitle"></h2><span id="sevSub" class="text-[12px] text-slate-500"></span></div>
+        <div id="sevBar" class="mt-4 flex h-4 rounded-full overflow-hidden bg-edge"></div>
+        <div id="sevLegend" class="mt-4 grid grid-cols-2 gap-2"></div>
+      </div>
+      <div class="card p-4">
+        <h2 class="font-bold text-white" data-i18n="alertsTitle"></h2>
+        <ul id="alerts" class="mt-1"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. ATTACK PATH -->
+  <section id="v-path" class="view">
+    <h1 class="text-[24px] sm:text-[32px] font-extrabold leading-[1.1] text-white" style="text-wrap:balance" data-i18n="pathTitle"></h1>
+    <p class="mt-2 text-[15px] text-slate-400" data-i18n="pathSub"></p>
+    <div class="mt-4 flex flex-wrap items-center gap-3">
+      <button id="hlToggle" role="switch" aria-checked="true" class="flex items-center gap-3 min-h-[44px] rounded-xl border border-edge bg-panel px-3">
+        <span id="hlTrack" class="relative w-11 h-6 rounded-full bg-rose-500 transition"><span id="hlKnob" class="absolute top-0.5 start-0.5 w-5 h-5 rounded-full bg-white transition-transform"></span></span>
+        <span class="text-[14px] font-semibold" data-i18n="highlight"></span>
+      </button>
+      <span class="flex items-center gap-1.5 text-[12px] text-slate-400"><span class="w-4 h-0.5 bg-rose-500"></span><span data-i18n="legendCrit"></span></span>
+      <span class="flex items-center gap-1.5 text-[12px] text-slate-400"><span class="w-4 h-0.5 bg-slate-500"></span><span data-i18n="legendOther"></span></span>
+    </div>
+    <div class="mt-4 grid gap-3 md:grid-cols-5">
+      <div class="card p-2 md:col-span-3"><svg id="graph" viewBox="0 0 360 400" class="w-full max-w-[560px] mx-auto block" role="img" aria-label="Attack path graph"></svg></div>
+      <div class="md:col-span-2"><p class="text-[12px] text-slate-500 mb-2 flex items-center gap-1.5"><i data-lucide="pointer" class="w-3.5 h-3.5"></i><span data-i18n="tapHint"></span></p><div id="nodeDetail" class="card p-4"></div></div>
+    </div>
+  </section>
+
+  <!-- 3. ASSETS -->
+  <section id="v-assets" class="view">
+    <h1 class="text-[24px] sm:text-[32px] font-extrabold text-white" data-i18n="assetsTitle"></h1>
+    <label class="mt-4 flex items-center gap-2 rounded-xl border border-edge bg-panel px-3 min-h-[48px] focus-within:border-sky-500">
+      <i data-lucide="search" class="w-4 h-4 text-slate-500 shrink-0"></i>
+      <input id="q" type="search" class="w-full bg-transparent outline-none text-[16px] placeholder:text-slate-500" data-i18n-ph="searchPh" autocomplete="off">
+    </label>
+    <div id="assetChips" class="scrollx mt-3 flex gap-2 pb-1"></div>
+    <p id="assetCount" class="mt-3 text-[13px] text-slate-500"></p>
+    <div id="assetList" class="mt-2 grid gap-3 sm:grid-cols-2"></div>
+  </section>
+
+  <!-- 4. FINDINGS -->
+  <section id="v-findings" class="view">
+    <h1 class="text-[24px] sm:text-[32px] font-extrabold text-white" data-i18n="findTitle"></h1>
+    <p class="mt-2 text-[15px] text-slate-400" data-i18n="findSub"></p>
+    <div id="sevChips" class="scrollx mt-4 flex gap-2 pb-1"></div>
+    <p id="findCount" class="mt-3 text-[13px] text-slate-500"></p>
+    <div id="findList" class="mt-2 grid gap-3"></div>
+  </section>
+
+  <p class="mt-8 text-center text-[12px] text-slate-600" data-i18n="footer"></p>
+</main>
+
+<!-- Bottom navigation -->
+<nav class="fixed bottom-0 inset-x-0 z-30 bg-panel/95 backdrop-blur border-t border-edge" style="padding-bottom:env(safe-area-inset-bottom)">
+  <div class="max-w-3xl mx-auto flex">
+    <button class="navbtn" data-view="overview" aria-current="page"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span data-i18n="nav_overview"></span></button>
+    <button class="navbtn" data-view="path"><i data-lucide="workflow" class="w-5 h-5"></i><span data-i18n="nav_path"></span></button>
+    <button class="navbtn" data-view="assets"><i data-lucide="server" class="w-5 h-5"></i><span data-i18n="nav_assets"></span></button>
+    <button class="navbtn" data-view="findings"><i data-lucide="shield-alert" class="w-5 h-5"></i><span data-i18n="nav_findings"></span></button>
+    <button class="navbtn" data-view="report"><i data-lucide="file-text" class="w-5 h-5"></i><span data-i18n="nav_report"></span></button>
+  </div>
+</nav>
+
+<!-- Scan drawer -->
+<div id="scrim" class="fixed inset-0 z-40 bg-black/60 hidden"></div>
+<section id="drawer" class="drawer fixed inset-x-0 bottom-0 z-50" role="dialog" aria-modal="true" aria-labelledby="drawerH">
+  <div class="max-w-3xl mx-auto bg-[#070C16] border border-edge rounded-t-2xl shadow-2xl" style="padding-bottom:env(safe-area-inset-bottom)">
+    <div class="w-10 h-1.5 rounded-full bg-slate-700 mx-auto mt-2"></div>
+    <div class="flex items-center gap-3 px-4 pt-3">
+      <div class="w-9 h-9 rounded-lg bg-teal-500/15 grid place-items-center text-teal-300"><i data-lucide="terminal" class="w-5 h-5"></i></div>
+      <div class="min-w-0"><h2 id="drawerH" class="font-bold text-white" data-i18n="drawerTitle"></h2><bdi class="mono text-[12px] text-slate-500">oman-logistics-demo.om</bdi></div>
+      <button id="drawerClose" class="ms-auto w-11 h-11 rounded-xl border border-edge grid place-items-center text-slate-400" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="scrollx flex items-center gap-1.5 px-4 mt-3" dir="ltr">
+      <span class="stage" data-stage="subfinder">subfinder</span><i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 shrink-0"></i>
+      <span class="stage" data-stage="dnsx">dnsx</span><i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 shrink-0"></i>
+      <span class="stage" data-stage="httpx">httpx</span><i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600 shrink-0"></i>
+      <span class="stage" data-stage="nuclei">nuclei</span>
+    </div>
+    <div class="mx-4 mt-3 h-1.5 rounded-full bg-edge overflow-hidden"><div id="prog" class="h-full grad-btn" style="width:0"></div></div>
+    <div id="term" class="mono text-[13px] leading-relaxed h-[44vh] overflow-y-auto px-4 py-3 mt-2 text-slate-300" dir="ltr" aria-live="polite"></div>
+    <div class="flex items-center gap-3 px-4 pb-4 pt-2 border-t border-edge">
+      <p id="scanResult" class="text-[13px] text-slate-400 flex-1"></p>
+      <button id="scanAgain" class="grad-btn min-h-[44px] px-4 rounded-xl font-bold text-[14px] hidden" data-i18n="runAgain"></button>
+    </div>
+  </div>
+</section>
+
+<!-- Executive report -->
+<div id="report" class="fixed inset-0 z-50 hidden bg-black/75 overflow-y-auto" role="dialog" aria-modal="true" aria-label="Executive report">
+  <div class="no-print sticky top-0 z-10 bg-base/95 backdrop-blur border-b border-edge" style="padding-top:env(safe-area-inset-top)">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2">
+      <button id="repClose" class="w-11 h-11 rounded-xl border border-edge grid place-items-center text-slate-300" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button>
+      <span class="font-bold text-white" data-i18n="nav_report"></span>
+      <button id="printBtn" class="ms-auto grad-btn min-h-[44px] px-4 rounded-xl font-bold text-[14px] flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i><span data-i18n="printBtn"></span></button>
+    </div>
+    <p id="printNote" class="hidden max-w-3xl mx-auto px-4 pb-3 text-[13px] text-amber-300" data-i18n="printNote"></p>
+  </div>
+  <article id="reportSheet" class="max-w-3xl mx-auto bg-white text-slate-900 sm:rounded-2xl p-5 sm:p-10 my-0 sm:my-6 shadow-2xl"></article>
+</div>
+
+<div id="toast" class="fixed top-4 inset-x-4 z-[60] mx-auto max-w-md rounded-xl border border-emerald-500/40 bg-[#062019] text-emerald-200 px-4 py-3 text-[14px] font-semibold shadow-xl hidden" role="status"></div>
+
+<script>
+{
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+
+/* ---------- i18n ---------- */
+const I18N={
+en:{tagline:'External Attack Surface Management',demoEnv:'Demo Environment',
+nav_overview:'Overview',nav_path:'Attack Path',nav_assets:'Assets',nav_findings:'Findings',nav_report:'Report',
+lastScan:'Last full scan today 06:00 GST · simulated demo data',
+riskTitle:'Attack surface risk score',lvlHigh:'High',lvlMed:'Medium',lvlLow:'Low',
+kAssets:'External assets',kServices:'Exposed services',kCH:'Critical · High',kAlerts:'Change alerts',
+runScan:'Run Live Demo Scan',runAgain:'Run Scan Again',scanning:'Scanning…',
+sevTitle:'Severity breakdown',sevSub:'{n} open findings',critical:'Critical',high:'High',medium:'Medium',low:'Low',all:'All',
+alertsTitle:'Recent perimeter alerts',
+headCrit:'{n} critical exposures need action within 72 hours',headOk:'No open critical exposures — keep monitoring',
+headSub:'Root cause: an unmonitored staging host exposed directly to the internet.',
+pathTitle:'From root domain to leaked secrets in three hops',pathSub:'How an attacker reaches the critical exposure on oman-logistics-demo.om',
+highlight:'Highlight critical path',tapHint:'Tap any node to inspect it',legendCrit:'Critical path',legendOther:'Other paths',openFinding:'Open finding',
+assetsTitle:'Asset inventory',searchPh:'Search host, IP, port or technology',fAll:'All',fSub:'Subdomains',fIp:'IPs',fCf:'Cloudflare',fDirect:'Direct origin',fSsl:'SSL issues',
+showing:'Showing {n} of {m} assets',noResults:'No assets match. Clear the search or pick another filter.',clear:'Clear filters',
+protCf:'Cloudflare WAF/CDN',protDirect:'Direct origin',newBadge:'New',subType:'Subdomain',ipType:'IP address',
+sslOk:'SSL valid · {n} days',sslSoon:'SSL expires in {n} days',sslExpired:'SSL expired {n} days ago',noTls:'No TLS on service',
+findTitle:'Findings & triage',findSub:'Sorted by severity and CVSS. Change a status and the risk score updates.',
+stOpen:'Open',stResolved:'Resolved',stFp:'False Positive',remTitle:'Remediation steps · EN / عربي',affected:'Affected asset',
+openCount:'{o} open · {r} resolved · {f} false positive',
+drawerTitle:'Live demo scan',closeBtn:'Close',
+toastNew:'Scan complete · 1 new exposed asset: uat-tracking.oman-logistics-demo.om',toastNone:'Scan complete · no new exposure since the last scan',
+resNew:'1 new exposed asset · 1 new finding · dashboard updated',resNone:'No changes since the last scan',
+repTitle:'Executive Attack Surface Summary',repFor:'Prepared for the CISO · oman-logistics-demo.om',repDate:'21 November 2026',repConf:'Confidential · demo data',
+repBottom:'Bottom line',repBottomTxt:'External risk is {lvl} ({s}/100). {c} critical and {h} high findings are open; the most urgent is an unmonitored staging host leaking production secrets. Close it within 72 hours.',
+repKey:'Key figures',repTop:'Priority findings',repActions:'Recommended actions',repSeverity:'Severity',repFinding:'Finding',repAsset:'Asset',repStatus:'Status',
+act1:'Within 72 hours: block /.env, rotate the exposed secrets and put staging-api behind the WAF.',
+act2:'Within 14 days: close RDP and Jenkins to the internet; upgrade Apache and OpenSSH.',
+act3:'Within 30 days: enforce DMARC and add every host to continuous monitoring with expiry alerts.',
+printBtn:'Print / Save PDF',printNote:'If no print dialog opened, this viewer blocks printing. Open the artifact in a full browser tab and choose Print → Save as PDF.',
+footer:'Rasid ASMaaS · simulated data for demonstration · no real systems were scanned'},
+ar:{tagline:'إدارة سطح الهجوم الخارجي',demoEnv:'بيئة تجريبية',
+nav_overview:'نظرة عامة',nav_path:'مسار الهجوم',nav_assets:'الأصول',nav_findings:'النتائج',nav_report:'التقرير',
+lastScan:'آخر فحص كامل اليوم 06:00 بتوقيت الخليج · بيانات تجريبية محاكاة',
+riskTitle:'مؤشر مخاطر سطح الهجوم',lvlHigh:'مرتفع',lvlMed:'متوسط',lvlLow:'منخفض',
+kAssets:'الأصول الخارجية',kServices:'الخدمات المكشوفة',kCH:'حرجة · عالية',kAlerts:'تنبيهات التغيير',
+runScan:'تشغيل فحص تجريبي مباشر',runAgain:'إعادة الفحص',scanning:'جارٍ الفحص…',
+sevTitle:'توزيع الخطورة',sevSub:'{n} نتيجة مفتوحة',critical:'حرجة',high:'عالية',medium:'متوسطة',low:'منخفضة',all:'الكل',
+alertsTitle:'أحدث تنبيهات المحيط الخارجي',
+headCrit:'ثغرات حرجة مفتوحة: {n} — المعالجة مطلوبة خلال 72 ساعة',headOk:'لا توجد ثغرات حرجة مفتوحة — استمروا في المراقبة',
+headSub:'السبب الجذري: خادم تجريبي غير مراقب مكشوف مباشرة على الإنترنت.',
+pathTitle:'من النطاق الرئيسي إلى الأسرار المسرّبة في ثلاث خطوات',pathSub:'كيف يصل المهاجم إلى الثغرة الحرجة في oman-logistics-demo.om',
+highlight:'إبراز المسار الحرج',tapHint:'اضغط على أي عقدة لعرض تفاصيلها',legendCrit:'المسار الحرج',legendOther:'مسارات أخرى',openFinding:'عرض النتيجة',
+assetsTitle:'جرد الأصول',searchPh:'ابحث بالمضيف أو العنوان أو المنفذ أو التقنية',fAll:'الكل',fSub:'النطاقات الفرعية',fIp:'عناوين IP',fCf:'Cloudflare',fDirect:'خادم أصلي مكشوف',fSsl:'مشاكل SSL',
+showing:'عرض {n} من {m} أصلاً',noResults:'لا توجد أصول مطابقة. امسح البحث أو اختر تصفية أخرى.',clear:'مسح التصفية',
+protCf:'حماية Cloudflare WAF/CDN',protDirect:'خادم أصلي مكشوف',newBadge:'جديد',subType:'نطاق فرعي',ipType:'عنوان IP',
+sslOk:'شهادة SSL سارية · {n} يوماً',sslSoon:'تنتهي شهادة SSL خلال {n} يوماً',sslExpired:'انتهت شهادة SSL منذ {n} أيام',noTls:'لا يوجد TLS على الخدمة',
+findTitle:'النتائج والفرز',findSub:'مرتبة حسب الخطورة ودرجة CVSS. غيّر الحالة ليتحدّث مؤشر المخاطر.',
+stOpen:'مفتوحة',stResolved:'تمت المعالجة',stFp:'إيجابية كاذبة',remTitle:'خطوات المعالجة · EN / عربي',affected:'الأصل المتأثر',
+openCount:'{o} مفتوحة · {r} تمت معالجتها · {f} إيجابية كاذبة',
+drawerTitle:'فحص تجريبي مباشر',closeBtn:'إغلاق',
+toastNew:'اكتمل الفحص · أصل مكشوف جديد: uat-tracking.oman-logistics-demo.om',toastNone:'اكتمل الفحص · لا انكشاف جديد منذ الفحص السابق',
+resNew:'أصل مكشوف جديد · نتيجة جديدة · تم تحديث اللوحة',resNone:'لا تغييرات منذ الفحص السابق',
+repTitle:'الملخص التنفيذي لسطح الهجوم',repFor:'مُعدّ لمسؤول أمن المعلومات · oman-logistics-demo.om',repDate:'21 نوفمبر 2026',repConf:'سري · بيانات تجريبية',
+repBottom:'الخلاصة',repBottomTxt:'مستوى المخاطر الخارجية {lvl} ({s}/100). توجد {c} نتائج حرجة و{h} نتائج عالية مفتوحة، أخطرها خادم تجريبي غير مراقب يسرّب أسرار بيئة الإنتاج. يجب إغلاقه خلال 72 ساعة.',
+repKey:'المؤشرات الرئيسية',repTop:'النتائج ذات الأولوية',repActions:'الإجراءات الموصى بها',repSeverity:'الخطورة',repFinding:'النتيجة',repAsset:'الأصل',repStatus:'الحالة',
+act1:'خلال 72 ساعة: احجب /.env، وغيّر الأسرار المكشوفة، وضع staging-api خلف جدار الحماية.',
+act2:'خلال 14 يوماً: أغلق RDP وJenkins أمام الإنترنت، وحدّث Apache وOpenSSH.',
+act3:'خلال 30 يوماً: فعّل سياسة DMARC وأضف جميع الخوادم إلى المراقبة المستمرة مع تنبيهات انتهاء الشهادات.',
+printBtn:'طباعة / حفظ PDF',printNote:'إذا لم تظهر نافذة الطباعة فهذا العارض يمنعها. افتح الصفحة في متصفح كامل واختر طباعة ← حفظ كملف PDF.',
+footer:'راصد · بيانات محاكاة لأغراض العرض · لم يتم فحص أي أنظمة حقيقية'}
+};
+let lang='en';
+try{const s=localStorage.getItem('rasid-lang');if(s==='ar'||s==='en')lang=s}catch(e){}
+const t=(k,v={})=>{let s=I18N[lang][k]??I18N.en[k]??k;for(const x in v)s=s.split('{'+x+'}').join(v[x]);return s};
+const L=o=>o==null?'':typeof o==='string'?o:(o[lang]??o.en);
+const RE=/((?:[a-z0-9-]+\.)*oman-logistics-demo\.om(?::\d+)?|185\.x\.x\.\d+(?::\d+)?|CVE-\d{4}-[0-9X]+|\/\.env|\/exports\/?)/g;
+const bidi=s=>s.replace(RE,'<bdi class="mono text-[0.92em]">$1</bdi>');
+const icons=()=>{try{window.lucide&&lucide.createIcons()}catch(e){}};
+
+/* ---------- logo (Concept 01) ---------- */
+function logo(id,navy){
+  const a=navy?'#0B2A4A':'#0EA5E9',b=navy?'#12507F':'#14B8A6',c=navy?'#0B2A4A':'#10B981',ring=navy?'#0B2A4A':'#38BDF8',bg=navy?'#FFFFFF':'#0B1120';
+  return `<svg viewBox="0 0 64 64" width="100%" height="100%" role="img" aria-label="Rasid logo">
+  <defs><linearGradient id="lg${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".5" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient>
+  <linearGradient id="ls${id}" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${b}" stop-opacity="0"/><stop offset="1" stop-color="${b}" stop-opacity="${navy?.35:.8}"/></linearGradient>
+  <clipPath id="lc${id}"><circle cx="32" cy="32" r="29"/></clipPath></defs>
+  <circle cx="32" cy="32" r="30" fill="${bg}" stroke="url(#lg${id})" stroke-width="2.6"/>
+  <g clip-path="url(#lc${id})">
+   <g fill="none" stroke="${ring}" stroke-opacity="${navy?.5:.45}" stroke-width="1"><circle cx="32" cy="32" r="21"/><circle cx="32" cy="32" r="12"/><path d="M32 3V61M3 32H61"/></g>
+   <path class="${navy?'':'sweep'}" d="M32 32 L32 3 A29 29 0 0 1 57.1 17.5 Z" fill="url(#ls${id})"/>
+   <circle cx="43.5" cy="19.5" r="2.3" fill="${c}"/>
+   <path d="M12 62V50h3v-2.6h3V50h3v-2.6h3V50h2V40h2.4v-2.6h2.4V40h2.4v-2.6h2.4V40h2.4V50h2v-2.6h3V50h3v-2.6h3V50h3V62Z" fill="url(#lg${id})"/>
+   <path d="M30.2 62v-5a1.8 1.8 0 0 1 3.6 0v5z" fill="${bg}"/>
+  </g></svg>`;
+}
+$('#logoHead').innerHTML=logo('h',false);
+
+/* ---------- data ---------- */
+const SEV={critical:{c:'#F43F5E',r:0},high:{c:'#F97316',r:1},medium:{c:'#F59E0B',r:2},low:{c:'#38BDF8',r:3}};
+const D='.oman-logistics-demo.om';
+const A=(host,type,ip,ports,tech,prot,ssl,isNew)=>({host,type,ip,ports,tech,prot,ssl,isNew:!!isNew});
+const ASSETS=[
+A('oman-logistics-demo.om','sub','104.21.48.10',[80,443],'Nginx · WordPress 6.4','cf',212),
+A('www'+D,'sub','104.21.48.10',[80,443],'Nginx · WordPress 6.4','cf',212),
+A('api'+D,'sub','104.21.48.12',[443],'Kong 3.4','cf',145),
+A('staging-api'+D,'sub','185.x.x.42',[22,8443],'Kong 2.8 · Node.js 16','direct',38,1),
+A('vpn'+D,'sub','185.x.x.20',[443],'FortiGate SSL-VPN','direct',6),
+A('mail'+D,'sub','185.x.x.25',[25,443,587],'Microsoft Exchange 2019','direct',90),
+A('autodiscover'+D,'sub','185.x.x.25',[443],'Microsoft Exchange 2019','direct',90),
+A('portal'+D,'sub','104.21.48.14',[443],'React · .NET 8','cf',145),
+A('tracking'+D,'sub','104.21.48.15',[443],'Angular · Spring Boot','cf',145),
+A('fleet'+D,'sub','104.21.48.16',[443],'Vue · Laravel','cf',145),
+A('erp'+D,'sub','185.x.x.31',[443],'SAP NetWeaver','direct',61),
+A('hr'+D,'sub','185.x.x.36',[443],'Oracle HCM','direct',120),
+A('sso'+D,'sub','185.x.x.27',[443],'Keycloak 21','direct',75),
+A('customs-gw'+D,'sub','185.x.x.50',[443,8443],'IBM API Connect','direct',22),
+A('sftp'+D,'sub','185.x.x.33',[22],'OpenSSH 7.4','direct',null),
+A('jenkins'+D,'sub','185.x.x.44',[8080],'Jenkins 2.346','direct',null),
+A('dev'+D,'sub','185.x.x.40',[80,3000],'Grafana 9.1','direct',-3),
+A('test'+D,'sub','185.x.x.41',[80],'Apache 2.4.49','direct',null),
+A('backup'+D,'sub','185.x.x.52',[443,5000],'Synology DSM 7','direct',300),
+A('cdn'+D,'sub','104.21.48.20',[443],'Cloudflare CDN','cf',212),
+A('careers'+D,'sub','104.21.48.21',[80,443],'WordPress 6.2','cf',212),
+A('status'+D,'sub','104.21.48.22',[443],'Static · Hugo','cf',212),
+A('docs'+D,'sub','104.21.48.23',[443],'Docusaurus','cf',212),
+A('m'+D,'sub','104.21.48.24',[443],'React web app','cf',145),
+A('185.x.x.42','ip','185.x.x.42',[22,8443],'Ubuntu 20.04 · Kong 2.8','direct',38),
+A('185.x.x.20','ip','185.x.x.20',[443],'FortiOS 7.0','direct',6),
+A('185.x.x.25','ip','185.x.x.25',[25,443,587],'Windows Server 2019','direct',90),
+A('185.x.x.60','ip','185.x.x.60',[3389],'Windows Server 2016 · RDP','direct',null)
+];
+const RISKY=[22,3000,3389,5000,8080,8443];
+
+const F=(id,sev,cvss,asset,cve,cwe,attack,title,desc,rem)=>({id,sev,cvss,asset,cve,cwe,attack,title,desc,rem,status:'open'});
+const NOCVE={en:'No CVE · misconfiguration',ar:'لا يوجد CVE · خطأ إعداد'};
+const FINDINGS=[
+F('f1','critical',9.8,'staging-api'+D+':8443',NOCVE,'CWE-538',['T1552.001','T1190'],
+ {en:'Exposed .env file leaks production secrets',ar:'ملف .env مكشوف يسرّب أسرار بيئة الإنتاج'},
+ {en:'/.env on staging-api.oman-logistics-demo.om:8443 returns database credentials, a payment-gateway API key and cloud access keys without authentication.',ar:'يعيد المسار /.env على staging-api.oman-logistics-demo.om:8443 بيانات اعتماد قاعدة البيانات ومفتاح بوابة الدفع ومفاتيح الوصول السحابي دون أي مصادقة.'},
+ {en:['Block /.env and all dotfiles at the gateway and web server now.','Rotate every exposed credential and key; review access logs for prior use.','Move secrets to a vault and remove staging from direct internet exposure.'],
+  ar:['احجب المسار /.env وجميع الملفات المخفية على البوابة وخادم الويب فوراً.','غيّر جميع بيانات الاعتماد والمفاتيح المكشوفة وراجع سجلات الوصول بحثاً عن أي استخدام سابق.','انقل الأسرار إلى خزنة آمنة وأوقف تعريض بيئة التجربة للإنترنت مباشرة.']}),
+F('f2','critical',9.1,'185.x.x.42:8443','CVE-2024-XXXX','CWE-1104',['T1190'],
+ {en:'Outdated API gateway (Kong 2.8) on direct origin',ar:'بوابة API قديمة (Kong 2.8) على خادم أصلي مكشوف'},
+ {en:'An end-of-life gateway build is reachable on 185.x.x.42:8443 with no WAF in front; a public exploit path exists for this version.',ar:'إصدار منتهي الدعم من البوابة متاح على 185.x.x.42:8443 دون جدار حماية تطبيقات، مع وجود مسار استغلال معروف لهذا الإصدار.'},
+ {en:['Upgrade to a supported Kong 3.x release.','Put the host behind Cloudflare WAF and allow origin traffic from Cloudflare ranges only.','Add staging-api to the monitored asset baseline.'],
+  ar:['قم بالترقية إلى إصدار مدعوم من Kong 3.x.','ضع الخادم خلف جدار Cloudflare واقصر الوصول إلى الخادم الأصلي على نطاقات Cloudflare.','أضف staging-api إلى قائمة الأصول المراقبة.']}),
+F('f3','high',8.1,'jenkins'+D+':8080',{en:'No CVE · exposure',ar:'لا يوجد CVE · انكشاف'},'CWE-284',['T1133','T1078'],
+ {en:'Jenkins console exposed to the internet',ar:'واجهة Jenkins مكشوفة على الإنترنت'},
+ {en:'The build server login on port 8080 is reachable from anywhere; a compromise would expose source code and deployment credentials.',ar:'صفحة دخول خادم البناء على المنفذ 8080 متاحة من أي مكان، واختراقها يكشف الشيفرة المصدرية وبيانات اعتماد النشر.'},
+ {en:['Restrict access to VPN or an IP allowlist.','Enforce SSO with MFA and update Jenkins to the current LTS.'],
+  ar:['اقصر الوصول على الشبكة الافتراضية الخاصة أو قائمة عناوين مسموح بها.','فعّل الدخول الموحد مع التحقق متعدد العوامل وحدّث Jenkins إلى أحدث إصدار LTS.']}),
+F('f4','high',8.1,'185.x.x.60:3389',{en:'No CVE · exposure',ar:'لا يوجد CVE · انكشاف'},'CWE-284',['T1133','T1110'],
+ {en:'RDP open to the internet',ar:'خدمة RDP مفتوحة على الإنترنت'},
+ {en:'Remote Desktop on 185.x.x.60:3389 accepts connections from any source and is a common ransomware entry point.',ar:'يقبل سطح المكتب البعيد على 185.x.x.60:3389 الاتصالات من أي مصدر، وهو مدخل شائع لهجمات الفدية.'},
+ {en:['Close 3389 at the perimeter firewall.','Provide admin access through VPN with MFA only.'],
+  ar:['أغلق المنفذ 3389 على جدار الحماية الخارجي.','وفّر الوصول الإداري عبر الشبكة الافتراضية الخاصة مع التحقق متعدد العوامل فقط.']}),
+F('f5','high',7.5,'test'+D,'CVE-2021-41773','CWE-22',['T1190'],
+ {en:'Apache 2.4.49 path traversal',ar:'ثغرة اجتياز المسار في Apache 2.4.49'},
+ {en:'The test host runs Apache 2.4.49, which is vulnerable to path traversal that can expose files outside the web root.',ar:'يعمل خادم الاختبار بإصدار Apache 2.4.49 المعرّض لثغرة اجتياز المسار التي قد تكشف ملفات خارج مجلد الويب.'},
+ {en:['Upgrade Apache to 2.4.51 or later.','Decommission the test host if it is no longer needed.'],
+  ar:['قم بترقية Apache إلى الإصدار 2.4.51 أو أحدث.','أوقف خادم الاختبار إن لم تعد هناك حاجة إليه.']}),
+F('f6','high',7.5,'dev'+D+':3000',{en:'No CVE · misconfiguration',ar:'لا يوجد CVE · خطأ إعداد'},'CWE-306',['T1213'],
+ {en:'Grafana dashboards open without login',ar:'لوحات Grafana متاحة دون تسجيل دخول'},
+ {en:'Anonymous viewer access exposes operational dashboards, internal hostnames and shipment volumes; the TLS certificate has also expired.',ar:'يتيح الوصول المجهول عرض لوحات تشغيلية وأسماء خوادم داخلية وأحجام الشحنات، كما أن شهادة TLS منتهية.'},
+ {en:['Disable anonymous access and require SSO.','Renew the certificate and move dev behind VPN.'],
+  ar:['عطّل الوصول المجهول واشترط الدخول الموحد.','جدّد الشهادة وانقل بيئة التطوير خلف الشبكة الافتراضية الخاصة.']}),
+F('f7','medium',5.3,'vpn'+D,{en:'No CVE · hygiene',ar:'لا يوجد CVE · نظافة إعداد'},'CWE-324',['T1557'],
+ {en:'VPN TLS certificate expires in 6 days',ar:'شهادة TLS للشبكة الافتراضية تنتهي خلال 6 أيام'},
+ {en:'If the certificate lapses, remote staff will see warnings and may learn to click through them.',ar:'إذا انتهت الشهادة سيرى الموظفون عن بُعد تحذيرات وقد يعتادون تجاوزها.'},
+ {en:['Renew and deploy the certificate this week.','Enable automated expiry alerts at 30 days.'],
+  ar:['جدّد الشهادة وطبّقها هذا الأسبوع.','فعّل تنبيهات انتهاء تلقائية قبل 30 يوماً.']}),
+F('f8','medium',5.3,'sftp'+D+':22','CVE-2018-15473','CWE-200',['T1110'],
+ {en:'Outdated OpenSSH allows username enumeration',ar:'إصدار OpenSSH قديم يسمح بحصر أسماء المستخدمين'},
+ {en:'The SSH banner shows OpenSSH 7.4, which lets attackers confirm valid usernames before brute-forcing.',ar:'يُظهر SSH الإصدار OpenSSH 7.4 الذي يسمح للمهاجم بالتحقق من أسماء المستخدمين الصحيحة قبل محاولات التخمين.'},
+ {en:['Upgrade OpenSSH to a supported release.','Allow key-based authentication only and restrict source IPs.'],
+  ar:['حدّث OpenSSH إلى إصدار مدعوم.','اسمح بالمصادقة بالمفاتيح فقط وقيّد عناوين المصدر.']}),
+F('f9','medium',5.3,'oman-logistics-demo.om',{en:'No CVE · email security',ar:'لا يوجد CVE · أمن البريد'},'CWE-346',['T1566'],
+ {en:'DMARC policy not enforced (p=none)',ar:'سياسة DMARC غير مفعّلة (p=none)'},
+ {en:'The domain publishes DMARC with p=none, so spoofed invoices and shipment notices are delivered instead of rejected.',ar:'ينشر النطاق سياسة DMARC بقيمة p=none، لذا تصل الفواتير وإشعارات الشحن المزيفة بدلاً من رفضها.'},
+ {en:['Move DMARC to p=quarantine, then p=reject after reviewing reports.','Align SPF and DKIM for every sending service.'],
+  ar:['انقل سياسة DMARC إلى p=quarantine ثم p=reject بعد مراجعة التقارير.','وحّد إعدادات SPF وDKIM لجميع خدمات الإرسال.']}),
+F('f10','low',3.7,'oman-logistics-demo.om',{en:'No CVE · disclosure',ar:'لا يوجد CVE · إفصاح'},'CWE-200',['T1592'],
+ {en:'Web server version disclosed in headers',ar:'إصدار خادم الويب ظاهر في الترويسات'},
+ {en:'Response headers reveal exact Nginx and PHP versions, which speeds up attacker reconnaissance.',ar:'تكشف ترويسات الاستجابة إصدارات Nginx وPHP بدقة، مما يسرّع استطلاع المهاجم.'},
+ {en:['Set server_tokens off and remove X-Powered-By.'],ar:['عطّل server_tokens وأزل ترويسة X-Powered-By.']}),
+F('f11','low',3.1,'careers'+D,{en:'No CVE · hardening',ar:'لا يوجد CVE · تحصين'},'CWE-319',['T1557'],
+ {en:'HSTS header missing',ar:'ترويسة HSTS غير موجودة'},
+ {en:'Without HSTS, a first visit over HTTP can be downgraded on hostile networks.',ar:'بدون HSTS يمكن خفض مستوى الزيارة الأولى عبر HTTP على الشبكات غير الآمنة.'},
+ {en:['Enable HSTS with a max-age of at least one year.'],ar:['فعّل HSTS بمدة لا تقل عن سنة.']})
+];
+const ALERTS=[
+ {sev:'high',text:{en:'New unmonitored subdomain staging-api.oman-logistics-demo.om detected',ar:'رُصد نطاق فرعي جديد غير مراقب staging-api.oman-logistics-demo.om'},time:{en:'2 hours ago',ar:'قبل ساعتين'}},
+ {sev:'medium',text:{en:'TLS certificate expiring in 6 days on vpn.oman-logistics-demo.om',ar:'شهادة TLS على vpn.oman-logistics-demo.om تنتهي خلال 6 أيام'},time:{en:'5 hours ago',ar:'قبل 5 ساعات'}},
+ {sev:'high',text:{en:'New open port 3389 (RDP) on 185.x.x.60',ar:'منفذ جديد مفتوح 3389 (RDP) على 185.x.x.60'},time:{en:'Yesterday',ar:'أمس'}}
+];
+
+/* ---------- state ---------- */
+const state={view:'overview',services:14,scanned:false,af:'all',q:'',sf:'all',hl:true,sel:'vuln'};
+const cnt=()=>{const c={critical:0,high:0,medium:0,low:0};FINDINGS.forEach(f=>{if(f.status==='open')c[f.sev]++});return c};
+const risk=()=>{const c=cnt();return Math.min(100,Math.round(38+10*c.critical+3*c.high+c.medium+.5*c.low+(state.scanned?1:0)))};
+const level=r=>r>=70?{k:'lvlHigh',c:'#FB7185'}:r>=40?{k:'lvlMed',c:'#FBBF24'}:{k:'lvlLow',c:'#34D399'};
+
+/* ---------- overview ---------- */
+function renderOverview(){
+  const c=cnt(),r=risk(),lv=level(r),open=c.critical+c.high+c.medium+c.low;
+  $('#headline').textContent=c.critical?t('headCrit',{n:c.critical}):t('headOk');
+  $('#headSub').innerHTML=c.critical?bidi(t('headSub')):'';
+  $('#gVal').setAttribute('stroke-dasharray',`${251.3*r/100} 252`);
+  $('#gNum').textContent=r;$('#gLvl').textContent=t(lv.k);$('#gLvl').style.color=lv.c;
+  $('#kA').textContent=ASSETS.length;$('#kS').textContent=state.services;$('#kC').textContent=c.critical;$('#kH').textContent=c.high;$('#kL').textContent=ALERTS.length;
+  $('#sevSub').textContent=t('sevSub',{n:open});
+  $('#sevBar').innerHTML=Object.keys(SEV).map(k=>c[k]?`<div style="width:${c[k]/Math.max(open,1)*100}%;background:${SEV[k].c}" title="${t(k)} ${c[k]}"></div>`:'').join('');
+  $('#sevLegend').innerHTML=Object.keys(SEV).map(k=>`<button data-sevjump="${k}" class="flex items-center gap-2 rounded-xl bg-base/60 border border-edge px-3 min-h-[44px] text-start"><span class="w-2.5 h-2.5 rounded-full" style="background:${SEV[k].c}"></span><span class="text-[13px] text-slate-300 flex-1">${t(k)}</span><span class="font-extrabold text-white">${c[k]}</span></button>`).join('');
+  $('#alerts').innerHTML=ALERTS.map(a=>`<li class="flex gap-3 py-3 border-t border-edge first:border-0"><span class="mt-1.5 w-2.5 h-2.5 rounded-full shrink-0" style="background:${SEV[a.sev].c}"></span><div class="min-w-0"><p class="text-[14px] text-slate-200 leading-snug">${bidi(L(a.text))}</p><p class="text-[12px] text-slate-500 mt-0.5">${L(a.time)}</p></div></li>`).join('');
+}
+
+/* ---------- attack path graph ---------- */
+const NODES=[
+ {id:'root',x:180,y:34,w:176,l1:'oman-logistics-demo.om',l2:{en:'Root domain',ar:'النطاق الرئيسي'},crit:1,full:'oman-logistics-demo.om',
+  type:{en:'Root domain',ar:'النطاق الرئيسي'},body:{en:'Primary domain of the organisation. Rasid seeds discovery here and maps 24 subdomains and 4 IP addresses from it.',ar:'النطاق الرئيسي للمؤسسة. يبدأ راصد الاكتشاف منه ويرسم 24 نطاقاً فرعياً و4 عناوين IP.'},chips:['24 subdomains','4 IPs','DMARC p=none']},
+ {id:'www',x:62,y:134,l1:'www',l2:{en:'Cloudflare WAF',ar:'محمي بـ Cloudflare'},full:'www'+D,
+  type:{en:'Subdomain',ar:'نطاق فرعي'},body:{en:'Main website served through Cloudflare; the origin IP is not exposed.',ar:'الموقع الرئيسي يُخدم عبر Cloudflare ولا يظهر عنوان الخادم الأصلي.'},chips:['WAF','CDN','443/tcp']},
+ {id:'stg',x:180,y:134,l1:'staging-api',l2:{en:'New · unmonitored',ar:'جديد · غير مراقب'},crit:1,full:'staging-api'+D,
+  type:{en:'Subdomain · hop 1',ar:'نطاق فرعي · الخطوة 1'},body:{en:'First seen 2 hours ago in certificate-transparency logs. Not in the CMDB, not behind the WAF, and resolving straight to the origin server.',ar:'رُصد قبل ساعتين في سجلات شفافية الشهادات. غير مسجّل في قاعدة إدارة الأصول، وغير محمي بجدار التطبيقات، ويشير مباشرة إلى الخادم الأصلي.'},chips:['First seen 2h ago','No WAF','Kong 2.8']},
+ {id:'vpn',x:298,y:134,l1:'vpn',l2:{en:'SSL-VPN',ar:'SSL-VPN'},full:'vpn'+D,
+  type:{en:'Subdomain',ar:'نطاق فرعي'},body:{en:'Remote-access VPN for staff, reachable directly on 443. Its certificate expires in 6 days.',ar:'شبكة افتراضية خاصة للوصول عن بُعد للموظفين، متاحة مباشرة على المنفذ 443 وتنتهي شهادتها خلال 6 أيام.'},chips:['FortiOS 7.0','443/tcp']},
+ {id:'cf',x:62,y:234,l1:'104.21.48.10',l2:{en:'Cloudflare edge',ar:'حافة Cloudflare'},full:'104.21.48.10',
+  type:{en:'Edge IP',ar:'عنوان حافة'},body:{en:'Cloudflare edge address. Requests are filtered before they reach the origin.',ar:'عنوان حافة Cloudflare، تُفحص الطلبات قبل وصولها إلى الخادم الأصلي.'},chips:['Anycast','WAF on']},
+ {id:'ip42',x:180,y:234,l1:'185.x.x.42:8443',l2:{en:'Direct origin',ar:'خادم أصلي مكشوف'},crit:1,full:'185.x.x.42:8443',
+  type:{en:'Origin IP · hop 2',ar:'خادم أصلي · الخطوة 2'},body:{en:'Origin server exposed on 8443 (API gateway) and 22 (SSH), running Ubuntu 20.04 with no filtering in front.',ar:'خادم أصلي مكشوف على المنفذين 8443 (بوابة API) و22 (SSH) بنظام Ubuntu 20.04 دون أي تصفية أمامه.'},chips:['8443/tcp','22/tcp','Ubuntu 20.04']},
+ {id:'ip20',x:298,y:234,l1:'185.x.x.20:443',l2:{en:'Direct origin',ar:'خادم أصلي مكشوف'},full:'185.x.x.20:443',
+  type:{en:'Origin IP',ar:'خادم أصلي'},body:{en:'VPN concentrator address. No WAF in front, as expected for a VPN service.',ar:'عنوان جهاز الشبكة الافتراضية الخاصة، دون جدار تطبيقات كما هو متوقع لهذه الخدمة.'},chips:['443/tcp']},
+ {id:'safe',x:62,y:346,l1:{en:'No exposure',ar:'لا يوجد انكشاف'},l2:{en:'Protected',ar:'محمي'},kind:'ok',full:{en:'Protected branch',ar:'فرع محمي'},
+  type:{en:'Result',ar:'النتيجة'},body:{en:'No exploitable exposure found on this branch.',ar:'لم تُرصد أي ثغرة قابلة للاستغلال في هذا الفرع.'},chips:[]},
+ {id:'vuln',x:180,y:346,w:122,h:62,l1:{en:'Exposed .env',ar:'ملف .env مكشوف'},l2:{en:'Outdated API GW',ar:'بوابة API قديمة'},l3:'CVE-2024-XXXX',crit:1,kind:'vuln',full:{en:'Exposed .env & outdated API gateway',ar:'ملف .env مكشوف وبوابة API قديمة'},
+  type:{en:'Critical finding · hop 3',ar:'نتيجة حرجة · الخطوة 3'},body:{en:'/.env returns database and cloud credentials, and the gateway build is end-of-life (CVE-2024-XXXX). Chained together, they give an attacker production access.',ar:'يعيد /.env بيانات اعتماد قاعدة البيانات والسحابة، وإصدار البوابة منتهي الدعم (CVE-2024-XXXX). بالجمع بينهما يحصل المهاجم على وصول إلى بيئة الإنتاج.'},chips:['CVSS 9.8','CWE-538','T1552.001','T1190'],go:'f1'},
+ {id:'tls',x:298,y:346,l1:{en:'TLS expiry',ar:'انتهاء TLS'},l2:{en:'In 6 days',ar:'خلال 6 أيام'},kind:'warn',full:{en:'TLS certificate expiring',ar:'شهادة TLS قاربت على الانتهاء'},
+  type:{en:'Medium finding',ar:'نتيجة متوسطة'},body:{en:'The certificate on vpn.oman-logistics-demo.om expires in 6 days. Renew this week to avoid an outage and click-through habits.',ar:'تنتهي شهادة vpn.oman-logistics-demo.om خلال 6 أيام. جدّدها هذا الأسبوع لتجنّب الانقطاع واعتياد تجاوز التحذيرات.'},chips:['CWE-324','6 days'],go:'f7'}
+];
+const N=Object.fromEntries(NODES.map(n=>[n.id,n]));
+const EDGES=[['root','www'],['root','stg',1],['root','vpn'],['www','cf'],['stg','ip42',1],['vpn','ip20'],['cf','safe'],['ip42','vuln',1],['ip20','tls']];
+const nw=n=>n.w||104,nh=n=>n.h||48;
+
+function renderGraph(){
+  const hl=state.hl;let hop=0;
+  const edges=EDGES.map(([a,b,cr])=>{const A=N[a],B=N[b],x1=A.x,y1=A.y+nh(A)/2,x2=B.x,y2=B.y-nh(B)/2-5,my=(y1+y2)/2,on=hl&&cr;
+    let badge='';if(on){hop++;badge=`<circle cx="${x2+18}" cy="${my}" r="10" fill="#F43F5E"/><text x="${x2+18}" y="${my+4}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${hop}</text>`}
+    return `<path d="M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}" fill="none" stroke="${on?'#F43F5E':'#475569'}" stroke-width="${on?2.4:1.4}" ${on?'class="flow"':''} opacity="${hl&&!cr?.35:1}" marker-end="url(#${on?'ac':'an'})"/>${badge}`}).join('');
+  const nodes=NODES.map(n=>{const w=nw(n),h=nh(n),x=n.x-w/2,y=n.y-h/2,dim=hl&&!n.crit;
+    let st='#2B3A52',fi='#0F172A';if(n.kind==='ok')st='#10B981';if(n.kind==='warn')st='#F59E0B';if(hl&&n.crit){st='#F43F5E';fi='#1A0F1A'}if(n.kind==='vuln'){st='#F43F5E';fi='#3A0E1C'}
+    const lines=[L(n.l1),L(n.l2),L(n.l3)].filter(Boolean),y0=y+(lines.length===3?19:20);
+    return `<g class="node" data-id="${n.id}" tabindex="0" role="button" aria-label="${L(n.full)}" opacity="${dim?.4:1}" style="cursor:pointer">
+     ${state.sel===n.id?`<rect x="${x-4}" y="${y-4}" width="${w+8}" height="${h+8}" rx="14" fill="none" stroke="#0EA5E9" stroke-width="2"/>`:''}
+     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="11" fill="${fi}" stroke="${st}" stroke-width="1.6"/>
+     ${lines.map((s,i)=>`<text x="${n.x}" y="${y0+i*14}" text-anchor="middle" font-size="${i===0?11.5:10.5}" font-weight="${i===0?700:500}" fill="${i===0?'#F1F5F9':(n.kind==='vuln'?'#FDA4AF':'#94A3B8')}">${s}</text>`).join('')}</g>`}).join('');
+  $('#graph').innerHTML=`<defs>
+   <marker id="an" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+   <marker id="ac" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#F43F5E"/></marker></defs>${edges}${nodes}`;
+  const on=state.hl;$('#hlToggle').setAttribute('aria-checked',on);$('#hlTrack').className=`relative w-11 h-6 rounded-full transition ${on?'bg-rose-500':'bg-slate-600'}`;
+  $('#hlKnob').style.transform=on?`translateX(${lang==='ar'?-20:20}px)`:'none';
+  renderDetail();
+}
+function renderDetail(){
+  const n=N[state.sel];
+  $('#nodeDetail').innerHTML=`<div class="text-[12px] font-semibold ${n.crit&&n.kind==='vuln'?'text-rose-400':'text-sky-400'}">${L(n.type)}</div>
+   <h3 class="mt-1 text-[17px] font-bold text-white break-words">${typeof n.full==='string'?`<bdi class="mono">${n.full}</bdi>`:L(n.full)}</h3>
+   <p class="mt-2 text-[14px] text-slate-300 leading-relaxed">${bidi(L(n.body))}</p>
+   ${n.chips.length?`<div class="mt-3 flex flex-wrap gap-1.5">${n.chips.map(c=>`<span class="tag border-edge text-slate-300 bg-base"><bdi>${c}</bdi></span>`).join('')}</div>`:''}
+   ${n.go?`<button data-goto="${n.go}" class="mt-4 min-h-[44px] px-4 rounded-xl border border-sky-500/50 text-sky-300 text-[14px] font-semibold flex items-center gap-2"><i data-lucide="arrow-right" class="w-4 h-4 rtl:rotate-180"></i>${t('openFinding')}</button>`:''}`;
+  icons();
+}
+
+/* ---------- assets ---------- */
+const AF=['all','sub','ip','cf','direct','ssl'],AFK={all:'fAll',sub:'fSub',ip:'fIp',cf:'fCf',direct:'fDirect',ssl:'fSsl'};
+function sslBadge(d){
+  if(d===null)return `<span class="tag border-slate-600 text-slate-400"><i data-lucide="lock-open" class="w-3 h-3"></i>${t('noTls')}</span>`;
+  if(d<0)return `<span class="tag border-rose-500/50 text-rose-300 bg-rose-500/10"><i data-lucide="lock" class="w-3 h-3"></i>${t('sslExpired',{n:-d})}</span>`;
+  if(d<=30)return `<span class="tag border-amber-500/50 text-amber-300 bg-amber-500/10"><i data-lucide="clock" class="w-3 h-3"></i>${t('sslSoon',{n:d})}</span>`;
+  return `<span class="tag border-emerald-500/40 text-emerald-300 bg-emerald-500/10"><i data-lucide="lock" class="w-3 h-3"></i>${t('sslOk',{n:d})}</span>`;
+}
+function renderAssets(){
+  $('#assetChips').innerHTML=AF.map(k=>`<button class="chip" data-af="${k}" aria-pressed="${state.af===k}">${t(AFK[k])}</button>`).join('');
+  const q=state.q.trim().toLowerCase();
+  const list=ASSETS.filter(a=>{
+    if(state.af==='sub'&&a.type!=='sub')return false;if(state.af==='ip'&&a.type!=='ip')return false;
+    if(state.af==='cf'&&a.prot!=='cf')return false;if(state.af==='direct'&&a.prot!=='direct')return false;
+    if(state.af==='ssl'&&!(a.ssl!==null&&a.ssl<=30))return false;
+    return !q||[a.host,a.ip,a.tech,a.ports.join(' ')].join(' ').toLowerCase().includes(q)});
+  $('#assetCount').textContent=t('showing',{n:list.length,m:ASSETS.length});
+  $('#assetList').innerHTML=list.length?list.map(a=>`<article class="card p-4 ${a.isNew?'border-teal-500/50':''}">
+    <div class="flex items-start gap-2"><i data-lucide="${a.type==='ip'?'server':'globe'}" class="w-4 h-4 mt-1 text-sky-400 shrink-0"></i>
+     <div class="flex-1 min-w-0"><div class="text-[14px] font-semibold text-white break-all"><bdi class="mono">${a.host}</bdi></div>
+     <div class="text-[13px] text-slate-400">${t(a.type==='ip'?'ipType':'subType')} · <bdi class="mono">${a.ip}</bdi></div></div>
+     ${a.isNew?`<span class="tag border-teal-400/60 text-teal-200 bg-teal-500/15">${t('newBadge')}</span>`:''}</div>
+    <div class="mt-3 flex flex-wrap gap-1.5" dir="ltr">${a.ports.map(p=>`<span class="tag mono ${RISKY.includes(p)?'border-amber-500/50 text-amber-300':'border-edge text-slate-300'}">${p}/tcp</span>`).join('')}</div>
+    <div class="mt-2 text-[13px] text-slate-300 flex items-center gap-1.5"><i data-lucide="layers" class="w-3.5 h-3.5 text-slate-500"></i><bdi>${a.tech}</bdi></div>
+    <div class="mt-3 flex flex-wrap gap-2">${a.prot==='cf'?`<span class="tag border-emerald-500/40 text-emerald-300 bg-emerald-500/10"><i data-lucide="cloud" class="w-3 h-3"></i>${t('protCf')}</span>`:`<span class="tag border-rose-500/40 text-rose-300 bg-rose-500/10"><i data-lucide="triangle-alert" class="w-3 h-3"></i>${t('protDirect')}</span>`}${sslBadge(a.ssl)}</div>
+   </article>`).join(''):`<div class="card p-6 text-center sm:col-span-2"><p class="text-slate-400 text-[14px]">${t('noResults')}</p><button id="clearAF" class="mt-3 min-h-[44px] px-4 rounded-xl border border-edge text-sky-300 font-semibold">${t('clear')}</button></div>`;
+  icons();
+}
+
+/* ---------- findings ---------- */
+const SF=['all','critical','high','medium','low'];
+function renderFindings(){
+  const c={};FINDINGS.forEach(f=>c[f.sev]=(c[f.sev]||0)+1);
+  $('#sevChips').innerHTML=SF.map(k=>`<button class="chip flex items-center gap-2" data-sf="${k}" aria-pressed="${state.sf===k}">${k!=='all'?`<span class="w-2 h-2 rounded-full" style="background:${SEV[k].c}"></span>`:''}${t(k)} <span class="text-slate-500">${k==='all'?FINDINGS.length:(c[k]||0)}</span></button>`).join('');
+  const o=FINDINGS.filter(f=>f.status==='open').length,r=FINDINGS.filter(f=>f.status==='resolved').length,fp=FINDINGS.filter(f=>f.status==='fp').length;
+  $('#findCount').textContent=t('openCount',{o,r,f:fp});
+  const list=FINDINGS.filter(f=>state.sf==='all'||f.sev===state.sf).sort((a,b)=>SEV[a.sev].r-SEV[b.sev].r||b.cvss-a.cvss);
+  const ST=[['open','stOpen','#F43F5E'],['resolved','stResolved','#10B981'],['fp','stFp','#64748B']];
+  $('#findList').innerHTML=list.map(f=>{const col=SEV[f.sev].c;return `<article id="card-${f.id}" class="card p-4 transition ${f.status!=='open'?'opacity-60':''}">
+    <div class="flex items-start gap-3">
+     <div class="shrink-0 w-[62px] rounded-xl border-2 text-center py-1.5" style="border-color:${col}"><div class="text-[11px] font-bold text-slate-400">CVSS</div><div class="text-[20px] font-extrabold" style="color:${col}">${f.cvss.toFixed(1)}</div></div>
+     <div class="flex-1 min-w-0"><span class="tag" style="border-color:${col}80;color:${col};background:${col}1a">${t(f.sev)}</span>
+      <h3 class="mt-1.5 text-[16px] font-bold text-white leading-snug">${bidi(L(f.title))}</h3>
+      <div class="text-[13px] text-slate-400 mt-0.5 break-all">${t('affected')}: <bdi class="mono">${f.asset}</bdi></div></div>
+    </div>
+    <p class="mt-3 text-[14px] text-slate-300 leading-relaxed">${bidi(L(f.desc))}</p>
+    <div class="mt-3 flex flex-wrap gap-1.5">
+     <span class="tag border-rose-500/40 text-rose-300"><i data-lucide="bug" class="w-3 h-3"></i><bdi>${L(f.cve)}</bdi></span>
+     <span class="tag border-sky-500/40 text-sky-300"><bdi>${f.cwe}</bdi></span>
+     ${f.attack.map(a=>`<span class="tag border-teal-500/40 text-teal-300"><i data-lucide="crosshair" class="w-3 h-3"></i><bdi>ATT&amp;CK ${a}</bdi></span>`).join('')}
+    </div>
+    <div class="seg mt-3 flex gap-1 rounded-xl bg-base border border-edge p-1" role="group">${ST.map(([k,lab,cc])=>`<button data-fid="${f.id}" data-st="${k}" aria-pressed="${f.status===k}" style="${f.status===k?`background:${cc}33;box-shadow:inset 0 0 0 1px ${cc}`:''}">${t(lab)}</button>`).join('')}</div>
+    <details class="mt-3 rounded-xl border border-edge bg-base/60"><summary class="flex items-center gap-2 px-3 min-h-[44px] text-[14px] font-semibold text-slate-200"><i data-lucide="wrench" class="w-4 h-4 text-emerald-400"></i>${t('remTitle')}<i data-lucide="chevron-down" class="chev w-4 h-4 ms-auto transition"></i></summary>
+     <div class="grid sm:grid-cols-2 gap-3 px-3 pb-3">
+      <ol dir="ltr" lang="en" class="list-decimal ps-5 text-[14px] text-slate-300 space-y-1.5" style="font-family:Inter,sans-serif">${f.rem.en.map(s=>`<li>${bidi(s)}</li>`).join('')}</ol>
+      <ol dir="rtl" lang="ar" class="list-decimal pe-5 text-[14px] text-slate-300 space-y-1.5 text-right" style="font-family:Cairo,sans-serif">${f.rem.ar.map(s=>`<li>${bidi(s)}</li>`).join('')}</ol>
+     </div></details>
+   </article>`}).join('');
+  icons();
+}
+
+/* ---------- report ---------- */
+function renderReport(){
+  const c=cnt(),r=risk(),lv=level(r),open=c.critical+c.high+c.medium+c.low;
+  const STL={open:'stOpen',resolved:'stResolved',fp:'stFp'};
+  const top=FINDINGS.filter(f=>f.sev==='critical'||f.sev==='high').sort((a,b)=>SEV[a.sev].r-SEV[b.sev].r||b.cvss-a.cvss);
+  const kpi=(v,l)=>`<div class="rounded-xl bg-slate-50 border border-slate-200 p-3"><div class="text-[24px] font-extrabold text-[#0B2A4A]">${v}</div><div class="text-[12px] text-slate-500 font-semibold">${l}</div></div>`;
+  $('#reportSheet').innerHTML=`
+   <div class="flex items-center gap-3 pb-5 border-b border-slate-200">
+    <div class="w-14 h-14 shrink-0">${logo('r',true)}</div>
+    <div><div class="text-[18px] font-extrabold tracking-wide text-[#0B2A4A]">RASID <span class="text-slate-300">|</span> <span style="font-family:Cairo">راصد</span></div><div class="text-[12px] text-slate-500">${t('tagline')}</div></div>
+    <div class="ms-auto text-end text-[12px] text-slate-500"><div>${t('repDate')}</div><div class="font-semibold text-rose-700">${t('repConf')}</div></div>
+   </div>
+   <h1 class="mt-6 text-[26px] sm:text-[32px] font-extrabold leading-tight text-[#0B2A4A]" style="text-wrap:balance">${t('repTitle')}</h1>
+   <p class="text-[14px] text-slate-500 mt-1">${bidi(t('repFor'))}</p>
+   <section class="mt-5 rounded-2xl bg-[#EAF6FD] p-4 sm:p-5">
+    <div class="text-[12px] font-bold text-[#0B6FA4]">${t('repBottom')}</div>
+    <p class="mt-1 text-[15px] leading-relaxed text-slate-800">${t('repBottomTxt',{lvl:t(lv.k),s:r,c:c.critical,h:c.high})}</p>
+   </section>
+   <h2 class="mt-6 text-[16px] font-bold text-[#0B2A4A]">${t('repKey')}</h2>
+   <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">${kpi(r+'/100',t('riskTitle'))}${kpi(ASSETS.length,t('kAssets'))}${kpi(state.services,t('kServices'))}${kpi(c.critical+' · '+c.high,t('kCH'))}</div>
+   <div class="mt-4 flex h-3 rounded-full overflow-hidden bg-slate-100">${Object.keys(SEV).map(k=>c[k]?`<div style="width:${c[k]/Math.max(open,1)*100}%;background:${SEV[k].c}"></div>`:'').join('')}</div>
+   <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-slate-600">${Object.keys(SEV).map(k=>`<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:${SEV[k].c}"></span>${t(k)} ${c[k]}</span>`).join('')}</div>
+   <h2 class="mt-6 text-[16px] font-bold text-[#0B2A4A]">${t('repTop')}</h2>
+   <table class="stack mt-2 w-full text-[13px] border-collapse">
+    <thead><tr class="text-start text-slate-500 border-b border-slate-200"><th class="text-start py-2 pe-2">${t('repSeverity')}</th><th class="text-start py-2 pe-2">${t('repFinding')}</th><th class="text-start py-2 pe-2">${t('repAsset')}</th><th class="text-end py-2 pe-2">CVSS</th><th class="text-start py-2">${t('repStatus')}</th></tr></thead>
+    <tbody>${top.map(f=>`<tr class="border-b border-slate-100 align-top"><td class="py-2 pe-2"><span class="font-bold" style="color:${SEV[f.sev].c}">${t(f.sev)}</span></td><td class="py-2 pe-2 font-semibold text-slate-800">${bidi(L(f.title))}</td><td class="py-2 pe-2 break-all"><bdi class="mono text-[12px]">${f.asset}</bdi></td><td class="py-2 pe-2 text-end font-bold">${f.cvss.toFixed(1)}</td><td class="py-2">${t(STL[f.status])}</td></tr>`).join('')}</tbody>
+   </table>
+   <h2 class="mt-6 text-[16px] font-bold text-[#0B2A4A]">${t('repActions')}</h2>
+   <ol class="mt-2 list-decimal ps-5 space-y-2 text-[14px] text-slate-800">${['act1','act2','act3'].map(k=>`<li>${bidi(t(k))}</li>`).join('')}</ol>
+   <p class="mt-8 pt-4 border-t border-slate-200 text-[11px] text-slate-400">${t('footer')}</p>`;
+}
+
+/* ---------- scan simulation ---------- */
+let scanning=false;
+function buildLogs(first){
+  const s='staging-api'+D,u='uat-tracking'+D;
+  return [
+   [0,'$ rasid scan --target oman-logistics-demo.om --profile external','cmd','subfinder'],
+   [350,'[subfinder] Enumerating passive sources (crt.sh, DNS datasets, web archives)…','info','subfinder'],
+   [1100,`[subfinder] ${first?31:30} candidate subdomains collected`,'info','subfinder'],
+   [1700,'[dnsx] Resolving A / AAAA / CNAME records…','info','dnsx'],
+   [2500,first?`[dnsx] 29 live hosts · NEW: ${u} → 185.x.x.47`:'[dnsx] 29 live hosts · no new hosts','warn','dnsx'],
+   [3200,'[httpx] Probing ports 80, 443, 8080, 8443 on 29 hosts…','info','httpx'],
+   [4000,`[httpx] ${u} [200] [Apache/2.4.57] [Index of /exports] [direct origin · no WAF]`,first?'warn':'info','httpx'],
+   [4700,'[httpx] TLS: vpn.oman-logistics-demo.om certificate expires in 6 days','warn','httpx'],
+   [5400,'[nuclei] Running 4,812 templates (exposures, misconfig, cves, takeovers)…','info','nuclei'],
+   [6300,`[nuclei] [medium] directory-listing → https://${u}/exports/${first?'':' (known)'}`,'warn','nuclei'],
+   [6900,`[nuclei] [critical] exposed-env-file → https://${s}:8443/.env (known)`,'crit','nuclei'],
+   [7500,'[rasid] Correlating with asset inventory and change baseline…','info','nuclei'],
+   [8000,first?'[rasid] Done · 1 new exposed asset · 1 new finding · risk 74 → 76':'[rasid] Done · no changes since last scan','ok','done']
+  ];
+}
+const CLS={cmd:'text-sky-300',info:'text-slate-300',warn:'text-amber-300',crit:'text-rose-400 font-semibold',ok:'text-emerald-400 font-semibold'};
+const ORDER=['subfinder','dnsx','httpx','nuclei'];
+function setStage(st){const i=st==='done'?4:ORDER.indexOf(st);$$('.stage').forEach((e,j)=>{e.classList.toggle('done',j<i);e.classList.toggle('active',j===i)})}
+function openDrawer(){$('#scrim').classList.remove('hidden');$('#drawer').classList.add('open')}
+function closeDrawer(){$('#scrim').classList.add('hidden');$('#drawer').classList.remove('open')}
+function runScan(){
+  openDrawer();if(scanning)return;scanning=true;
+  const first=!state.scanned,term=$('#term');term.innerHTML='';$('#scanResult').textContent=t('scanning');$('#scanAgain').classList.add('hidden');
+  $('#scanBtnTxt').textContent=t('scanning');$('#scanBtn').disabled=true;$('#scanBtn').classList.add('opacity-70');
+  setStage('subfinder');
+  buildLogs(first).forEach(([ms,txt,cl,st])=>setTimeout(()=>{
+    const d=document.createElement('div');d.className='ln '+CLS[cl];
+    d.textContent=`[00:${String(Math.floor(ms/1000)).padStart(2,'0')}.${Math.floor(ms%1000/100)}] ${txt}`;
+    term.appendChild(d);term.scrollTop=term.scrollHeight;setStage(st)},ms));
+  const t0=performance.now();
+  const tick=()=>{const p=Math.min(1,(performance.now()-t0)/8000);$('#prog').style.width=p*100+'%';if(p<1)requestAnimationFrame(tick)};requestAnimationFrame(tick);
+  setTimeout(()=>finishScan(first),8100);
+}
+function finishScan(first){
+  scanning=false;$('#scanBtn').disabled=false;$('#scanBtn').classList.remove('opacity-70');
+  if(first){
+    state.scanned=true;state.services++;
+    ASSETS.unshift(A('uat-tracking'+D,'sub','185.x.x.47',[80,443],'Apache 2.4.57','direct',54,1));
+    FINDINGS.push(F('f12','medium',5.3,'uat-tracking'+D,{en:'No CVE · misconfiguration',ar:'لا يوجد CVE · خطأ إعداد'},'CWE-548',['T1083'],
+      {en:'Directory listing exposes /exports',ar:'عرض محتويات المجلد يكشف /exports'},
+      {en:'Found in this scan: /exports/ lists shipment CSV files on a UAT host with no WAF.',ar:'رُصد في هذا الفحص: المجلد /exports/ يعرض ملفات شحنات CSV على خادم اختبار دون جدار حماية.'},
+      {en:['Disable directory indexing (Options -Indexes).','Remove real data from UAT and restrict the host to VPN.'],ar:['عطّل عرض محتويات المجلدات (Options -Indexes).','احذف البيانات الحقيقية من بيئة الاختبار وقيّد الخادم بالشبكة الافتراضية الخاصة.']}));
+    ALERTS.unshift({sev:'medium',text:{en:'New exposed host uat-tracking.oman-logistics-demo.om with directory listing',ar:'رُصد خادم مكشوف جديد uat-tracking.oman-logistics-demo.om مع عرض محتويات المجلد'},time:{en:'Just now',ar:'الآن'}});
+  }
+  state.lastResult=first?'resNew':'resNone';
+  renderAll();
+  $('#scanResult').textContent=t(state.lastResult);$('#scanAgain').classList.remove('hidden');
+  if(first)$$('.kpi').forEach(k=>{k.classList.remove('pulse');void k.offsetWidth;k.classList.add('pulse')});
+  toast(bidi(t(first?'toastNew':'toastNone')));
+}
+let toastT;function toast(h){const e=$('#toast');e.innerHTML=h;e.classList.remove('hidden');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.add('hidden'),4500)}
+
+/* ---------- navigation & language ---------- */
+function setView(v){
+  if(v==='report'){openReport();return}
+  state.view=v;$$('.view').forEach(s=>s.classList.toggle('active',s.id==='v-'+v));
+  $$('.navbtn').forEach(b=>b.dataset.view===v?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));
+  window.scrollTo({top:0});
+}
+function openReport(){renderReport();$('#printNote').classList.add('hidden');$('#report').classList.remove('hidden');document.body.style.overflow='hidden';$('#report').scrollTop=0;icons()}
+function closeReport(){$('#report').classList.add('hidden');document.body.style.overflow=''}
+function applyI18n(){
+  document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+  $$('[data-i18n]').forEach(e=>{e.innerHTML=bidi(t(e.dataset.i18n))});
+  $$('[data-i18n-ph]').forEach(e=>e.placeholder=t(e.dataset.i18nPh));
+  $$('.langbtn').forEach(b=>{const on=b.dataset.lang===lang;b.setAttribute('aria-pressed',on);b.className=`langbtn h-9 px-3 rounded-lg text-[13px] font-bold ${on?'grad-btn':'text-slate-400'}`});
+  $('#scanBtnTxt').textContent=scanning?t('scanning'):t(state.scanned?'runAgain':'runScan');
+  if(state.lastResult&&!scanning)$('#scanResult').textContent=t(state.lastResult);
+}
+function renderAll(){applyI18n();renderOverview();renderGraph();renderAssets();renderFindings();if(!$('#report').classList.contains('hidden'))renderReport();icons()}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button,[data-id]');if(!b)return;
+  if(b.dataset.view){setView(b.dataset.view);return}
+  if(b.dataset.lang){lang=b.dataset.lang;try{localStorage.setItem('rasid-lang',lang)}catch(x){}renderAll();return}
+  if(b.dataset.af){state.af=b.dataset.af;renderAssets();return}
+  if(b.id==='clearAF'){state.af='all';state.q='';$('#q').value='';renderAssets();return}
+  if(b.dataset.sf){state.sf=b.dataset.sf;renderFindings();return}
+  if(b.dataset.sevjump){state.sf=b.dataset.sevjump;renderFindings();setView('findings');return}
+  if(b.dataset.fid){const f=FINDINGS.find(x=>x.id===b.dataset.fid);f.status=b.dataset.st;renderFindings();renderOverview();return}
+  if(b.dataset.goto){state.sf='all';renderFindings();setView('findings');const c=$('#card-'+b.dataset.goto);if(c){c.scrollIntoView({block:'center'});c.classList.add('pulse');setTimeout(()=>c.classList.remove('pulse'),2100)}return}
+  if(b.classList.contains('node')){state.sel=b.dataset.id;renderGraph();return}
+});
+$('#graph').addEventListener('keydown',e=>{const n=e.target.closest('.node');if(n&&(e.key==='Enter'||e.key===' ')){e.preventDefault();state.sel=n.dataset.id;renderGraph();const m=$(`.node[data-id="${state.sel}"]`);m&&m.focus()}});
+$('#hlToggle').addEventListener('click',()=>{state.hl=!state.hl;renderGraph()});
+$('#q').addEventListener('input',e=>{state.q=e.target.value;renderAssets()});
+$('#scanBtn').addEventListener('click',runScan);$('#scanHead').addEventListener('click',runScan);$('#scanAgain').addEventListener('click',runScan);
+$('#drawerClose').addEventListener('click',closeDrawer);$('#scrim').addEventListener('click',closeDrawer);
+$('#repClose').addEventListener('click',closeReport);
+$('#printBtn').addEventListener('click',()=>{try{window.print()}catch(x){}$('#printNote').classList.remove('hidden')});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeReport()}});
+
+renderAll();
+}
+</script>
+</body>
+</html>
